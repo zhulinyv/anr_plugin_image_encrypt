@@ -5,7 +5,7 @@ import gradio as gr
 import ujson as json
 
 from plugins.anr_plugin_image_encrypt.utils import decrypt_image, encrypt_image
-from utils import return_array_image, stop_generate, tk_asksavefile_asy
+from utils import playsound, return_array_image, stop_generate, tk_asksavefile_asy
 
 
 def before_process(encrypt_input_path, encrypt_input_image):
@@ -31,6 +31,7 @@ def encrypt(encrypt_input_path, encrypt_input_image):
         )
         if encrypt_image(image, output_path):
             image_list.append(output_path)
+    playsound("./assets/finish.mp3")
     return image_list
 
 
@@ -43,6 +44,7 @@ def decrypt(encrypt_input_path, encrypt_input_image):
         )
         if decrypt_image(image, output_path):
             image_list.append(output_path)
+    playsound("./assets/finish.mp3")
     return image_list
 
 
