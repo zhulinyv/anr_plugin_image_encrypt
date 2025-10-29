@@ -5,7 +5,14 @@ import gradio as gr
 import ujson as json
 
 from plugins.anr_plugin_image_encrypt.utils import decrypt_image, encrypt_image
-from utils import playsound, return_array_image, stop_generate, tk_asksavefile_asy
+from utils import (
+    playsound,
+    read_json,
+    return_array_image,
+    stop_generate,
+    tk_asksavefile_asy,
+)
+from utils.logger import logger
 
 
 def before_process(encrypt_input_path, encrypt_input_image):
@@ -25,6 +32,10 @@ def before_process(encrypt_input_path, encrypt_input_image):
 def encrypt(encrypt_input_path, encrypt_input_image):
     image_list = []
     for image in before_process(encrypt_input_path, encrypt_input_image):
+        _break = read_json("./outputs/temp_break.json")
+        if _break["break"]:
+            logger.warning("已停止生成!")
+            break
         name, extension = os.path.splitext(os.path.basename(image))
         output_path = (
             f"{os.path.dirname(os.path.abspath(image))}\\{name}_encrypt{extension}"
@@ -38,6 +49,10 @@ def encrypt(encrypt_input_path, encrypt_input_image):
 def decrypt(encrypt_input_path, encrypt_input_image):
     image_list = []
     for image in before_process(encrypt_input_path, encrypt_input_image):
+        _break = read_json("./outputs/temp_break.json")
+        if _break["break"]:
+            logger.warning("已停止生成!")
+            break
         name, extension = os.path.splitext(os.path.basename(image))
         output_path = (
             f"{os.path.dirname(os.path.abspath(image))}\\{name}_decrypt{extension}"
