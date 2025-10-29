@@ -31,7 +31,7 @@ def encrypt(encrypt_input_path, encrypt_input_image):
         )
         if encrypt_image(image, output_path):
             image_list.append(output_path)
-        return image_list
+    return image_list
 
 
 def decrypt(encrypt_input_path, encrypt_input_image):
@@ -43,7 +43,7 @@ def decrypt(encrypt_input_path, encrypt_input_image):
         )
         if decrypt_image(image, output_path):
             image_list.append(output_path)
-        return image_list
+    return image_list
 
 
 def plugin():
