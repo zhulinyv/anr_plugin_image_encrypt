@@ -116,7 +116,7 @@ def encrypt_image(input_path, output_path):
                 new_pixels[new_pos[0], new_pos[1]] = pixel_value
 
         format_str = "JPEG"
-        if input_path.lower().endswith(".png"):
+        if str(input_path).lower().endswith(".png"):
             format_str = "PNG"
 
         if format_str == "JPEG":
@@ -174,7 +174,7 @@ def decrypt_image(input_path, output_path):
                 new_pixels[old_pos[0], old_pos[1]] = pixel_value
 
         format_str = "JPEG"
-        if input_path.lower().endswith(".png"):
+        if str(input_path).lower().endswith(".png"):
             format_str = "PNG"
 
         if format_str == "JPEG":
