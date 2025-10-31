@@ -8,10 +8,10 @@ from plugins.anr_plugin_image_encrypt.utils import decrypt_image, encrypt_image
 from utils import (
     playsound,
     read_json,
-    return_array_image,
     stop_generate,
     tk_asksavefile_asy,
 )
+from utils.image_tools import return_array_image
 from utils.logger import logger
 
 
@@ -41,7 +41,7 @@ def encrypt(encrypt_input_path, encrypt_input_image):
             f"{os.path.dirname(os.path.abspath(image))}\\{name}_encrypt{extension}"
         )
         if encrypt_image(image, output_path):
-            image_list.append(output_path)
+            image_list.append(return_array_image(output_path))
     playsound("./assets/finish.mp3")
     return image_list
 
@@ -58,7 +58,7 @@ def decrypt(encrypt_input_path, encrypt_input_image):
             f"{os.path.dirname(os.path.abspath(image))}\\{name}_decrypt{extension}"
         )
         if decrypt_image(image, output_path):
-            image_list.append(output_path)
+            image_list.append(return_array_image(output_path))
     playsound("./assets/finish.mp3")
     return image_list
 
