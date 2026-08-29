@@ -7,7 +7,7 @@ from pathlib import Path
 import ujson as json
 
 from plugins.anr_plugin_image_encrypt.utils import decrypt_image, encrypt_image
-from utils.helpers import check_stop, playsound, read_json
+from utils.helpers import check_stop, playsound, read_json, reset_stop
 from utils.logger import logger
 from utils.plugins import Action, Field, Panel, Plugin
 
@@ -15,8 +15,7 @@ from utils.plugins import Action, Field, Panel, Plugin
 def _input_images(input_path: str | None, input_image: str | None) -> list[str]:
     """收集待处理图片: 先单张图片, 再目录内全部图片 (同时输入时两者都处理)。"""
     os.makedirs("./outputs", exist_ok=True)
-    with open("./outputs/temp_break.json", "w") as f:
-        json.dump({"break": False}, f)
+    reset_stop()  # 重置本任务的停止信号
     images = []
     if input_image:
         images.append(input_image)
@@ -60,8 +59,8 @@ def register(plugin: Plugin):
             Field(id="image", label="或上传单张图片", type="image"),
         ],
         actions=[
-            Action(id="encrypt", label="🔒 混淆", inputs=["path", "image"], handler=lambda v: _process(v, "encrypt")),
-            Action(id="decrypt", label="🔓 解混淆", inputs=["path", "image"], handler=lambda v: _process(v, "decrypt")),
+            Action(id="encrypt", label="🔒 混淆", inputs=["path", "image"], uses_novelai=False, handler=lambda v: _process(v, "encrypt")),
+            Action(id="decrypt", label="🔓 解混淆", inputs=["path", "image"], uses_novelai=False, handler=lambda v: _process(v, "decrypt")),
         ],
     )
     plugin.title = "图片混淆"
