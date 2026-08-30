@@ -141,6 +141,7 @@ def encrypt_image(input_path, output_path):
 
     except Exception as e:
         logger.error(f"混淆失败: {e}")
+        logger.opt(exception=True).debug("混淆失败堆栈:")
         return False
 
 
@@ -199,4 +200,5 @@ def decrypt_image(input_path, output_path):
 
     except Exception as e:
         logger.error(f"解混淆失败: {e}")
+        logger.opt(exception=True).debug("解混淆失败堆栈:")
         return False

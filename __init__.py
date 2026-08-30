@@ -1,104 +1,69 @@
+"""图片混淆插件: 加密 / 解密图片 (基于 LSB 隐写)。"""
+from __future__ import annotations
+
 import os
 from pathlib import Path
 
-import gradio as gr
 import ujson as json
 
 from plugins.anr_plugin_image_encrypt.utils import decrypt_image, encrypt_image
-from utils import (
-    playsound,
-    read_json,
-    stop_generate,
-    tk_asksavefile_asy,
-)
-from utils.image_tools import return_array_image
+from utils.helpers import check_stop, playsound, read_json, reset_stop
 from utils.logger import logger
+from utils.plugins import Action, Field, Panel, Plugin
 
 
-def before_process(encrypt_input_path, encrypt_input_image):
-    with open("./outputs/temp_break.json", "w") as f:
-        json.dump({"break": False}, f)
+def _input_images(input_path: str | None, input_image: str | None) -> list[str]:
+    """收集待处理图片: 先单张图片, 再目录内全部图片 (同时输入时两者都处理)。"""
+    os.makedirs("./outputs", exist_ok=True)
+    reset_stop()  # 重置本任务的停止信号
+    images = []
+    if input_image:
+        images.append(input_image)
+    if input_path:
+        images.extend(str(Path(input_path) / f) for f in sorted(os.listdir(input_path)))
+    # 去重 (保留顺序: 先图片, 再目录)
+    seen = set()
+    result = []
+    for img in images:
+        key = os.path.abspath(img)
+        if key not in seen:
+            seen.add(key)
+            result.append(img)
+    return result
 
-    if encrypt_input_image:
-        image_list = [encrypt_input_image]
-    else:
-        image_list = [
-            Path(encrypt_input_path) / file for file in os.listdir(encrypt_input_path)
-        ]
 
-    return image_list
-
-
-def encrypt(encrypt_input_path, encrypt_input_image):
+def _process(values: dict, action: str) -> dict:
     image_list = []
-    for image in before_process(encrypt_input_path, encrypt_input_image):
-        _break = read_json("./outputs/temp_break.json")
-        if _break["break"]:
-            logger.warning("已停止生成!")
+    for image in _input_images(values.get("path"), values.get("image")):
+        if check_stop():
+            logger.warning("已停止处理!")
             break
         name, extension = os.path.splitext(os.path.basename(image))
-        output_path = (
-            f"{os.path.dirname(os.path.abspath(image))}\\{name}_encrypt{extension}"
-        )
-        if encrypt_image(image, output_path):
-            image_list.append(return_array_image(output_path))
+        output_path = f"{os.path.dirname(os.path.abspath(image))}\\{name}_{action}{extension}"
+        func = encrypt_image if action == "encrypt" else decrypt_image
+        if func(image, output_path):
+            image_list.append(output_path)
+            logger.success(f"{'加密' if action == 'encrypt' else '解密'}完成: {output_path}")
     playsound("./assets/finish.mp3")
-    return image_list
+    return {"images": image_list, "message": f"{'加密' if action == 'encrypt' else '解密'}处理完成!"}
 
 
-def decrypt(encrypt_input_path, encrypt_input_image):
-    image_list = []
-    for image in before_process(encrypt_input_path, encrypt_input_image):
-        _break = read_json("./outputs/temp_break.json")
-        if _break["break"]:
-            logger.warning("已停止生成!")
-            break
-        name, extension = os.path.splitext(os.path.basename(image))
-        output_path = (
-            f"{os.path.dirname(os.path.abspath(image))}\\{name}_decrypt{extension}"
-        )
-        if decrypt_image(image, output_path):
-            image_list.append(return_array_image(output_path))
-    playsound("./assets/finish.mp3")
-    return image_list
-
-
-def plugin():
-    with gr.Tab("图片混淆"):
-        encrypt_input_path = gr.Textbox(
-            label="批处理路径(同时输入路径和图片时仅处理图片)"
-        )
-        with gr.Row():
-            with gr.Column():
-                encrypt_input_image = gr.Image(
-                    type="numpy", interactive=False, label="Input"
-                )
-                with gr.Row():
-                    encrypt_input_text = gr.Textbox(visible=False)
-                    encrypt_input_btn = gr.Button("选择图片")
-                    encrypt_clear_btn = gr.Button("清除选择")
-            encrypt_clear_btn.click(
-                lambda x: x, gr.Textbox(None, visible=False), encrypt_input_text
-            )
-            encrypt_input_btn.click(
-                tk_asksavefile_asy, inputs=[], outputs=[encrypt_input_text]
-            )
-            encrypt_input_text.change(
-                return_array_image, encrypt_input_text, encrypt_input_image
-            )
-            encrypt_output_image = gr.Gallery(interactive=False, label="Output")
-        with gr.Row():
-            encrypt_button = gr.Button("混淆")
-            encrypt_button.click(
-                encrypt,
-                inputs=[encrypt_input_path, encrypt_input_text],
-                outputs=encrypt_output_image,
-            )
-            decrypt_button = gr.Button("解混淆")
-            decrypt_button.click(
-                decrypt,
-                inputs=[encrypt_input_path, encrypt_input_text],
-                outputs=encrypt_output_image,
-            )
-        encrypt_stop_button = gr.Button("停止处理")
-        encrypt_stop_button.click(stop_generate)
+def register(plugin: Plugin):
+    panel = Panel(
+        id="image_encrypt",
+        title="图片混淆",
+        icon="🔐",
+        description="基于 LSB 隐写的图片加密 / 解密, 支持单张或批处理",
+        fields=[
+            Field(id="path", label="批处理路径", type="path", folder=True, file=False),
+            Field(id="image", label="或上传单张图片", type="image"),
+        ],
+        actions=[
+            Action(id="encrypt", label="🔒 混淆", inputs=["path", "image"], uses_novelai=False, handler=lambda v: _process(v, "encrypt")),
+            Action(id="decrypt", label="🔓 解混淆", inputs=["path", "image"], uses_novelai=False, handler=lambda v: _process(v, "decrypt")),
+        ],
+    )
+    plugin.title = "图片混淆"
+    plugin.description = "图片 LSB 隐写加密插件"
+    plugin.icon = "🔐"
+    plugin.panels.append(panel)
